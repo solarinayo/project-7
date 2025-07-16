@@ -24,7 +24,12 @@ router.post(
       .withMessage("Paystack reference is missing."),
   ],
   async (req, res) => {
-    console.log("✅ Received enrollment request on backend:", req.body);
+    // ✅ FIX: Added detailed logging of the incoming request body to the terminal
+    console.log(
+      "✅ Received enrollment request on backend. Full data:",
+      JSON.stringify(req.body, null, 2)
+    );
+
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       console.error("❌ Validation errors:", errors.array());
@@ -64,6 +69,7 @@ router.post(
       console.log(`✅ Student ${applicantId} saved to MongoDB.`);
 
       // --- Trigger background tasks without waiting ---
+      console.log("--- Firing background tasks (Email and Google Sheets) ---");
       sendEmail({
         to: savedStudent.email,
         template: "payment-confirmation",

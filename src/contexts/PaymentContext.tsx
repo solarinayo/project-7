@@ -81,7 +81,7 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
         finalAmount, currentPayment, paystackReference: paystackResponse.reference,
     };
     try {
-      console.log('✅ Submitting enrollment data to server:', fullPaymentDetails);
+      console.log('✅ Submitting enrollment data to server:', JSON.stringify(fullPaymentDetails, null, 2));
       const response = await fetch(`${import.meta.env.VITE_API_URL}/students/enroll`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(fullPaymentDetails),

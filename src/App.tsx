@@ -4,12 +4,12 @@ import { PaymentProvider } from './contexts/PaymentContext';
 import { AdminProvider } from './contexts/AdminContext';
 import HomePage from './pages/HomePage';
 import PaymentForm from './pages/PaymentForm';
-import AdminDashboard from './pages/AdminDashboard';
-import StudentManagement from './pages/StudentManagement';
-import VoucherManagement from './pages/VoucherManagement';
-import AdminManagement from './pages/AdminManagement';
 import PaymentSuccess from './pages/PaymentSuccess';
+// ❌ REMOVE THIS IMPORT
+// import PaymentVerification from './pages/PaymentVerification'; 
 import AdminLogin from './pages/AdminLogin';
+import AdminDashboard from './pages/AdminDashboard';
+// ... other imports
 
 function App() {
   return (
@@ -20,12 +20,12 @@ function App() {
             <Routes>
               <Route path="/" element={<HomePage />} />
               <Route path="/payment" element={<PaymentForm />} />
+              {/* ❌ REMOVE THIS ROUTE */}
+              {/* <Route path="/payment/verify" element={<PaymentVerification />} /> */}
               <Route path="/payment-success" element={<PaymentSuccess />} />
               <Route path="/admin/login" element={<AdminLogin />} />
               <Route path="/admin" element={<AdminDashboard />} />
-              <Route path="/admin/students" element={<StudentManagement />} />
-              <Route path="/admin/vouchers" element={<VoucherManagement />} />
-              <Route path="/admin/admins" element={<AdminManagement />} />
+              {/* ... other routes */}
             </Routes>
           </div>
         </Router>
