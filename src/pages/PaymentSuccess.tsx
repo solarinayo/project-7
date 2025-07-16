@@ -1,10 +1,12 @@
 import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { usePayment } from '../contexts/PaymentContext';
+// ✅ FIX: Get all calculated values from the context
+import { usePayment } from '../contexts/PaymentContext'; 
 import { CheckCircleIcon, PrinterIcon } from '@heroicons/react/24/outline';
 
 const PaymentSuccess: React.FC = () => {
-  const { paymentData, courses } = usePayment();
+  // ✅ FIX: Destructure all required values from the hook
+  const { paymentData, courses, totalAmount, discountAmount, finalAmount, currentPayment } = usePayment();
 
   useEffect(() => {
     console.log('Payment successful. Displaying receipt for:', paymentData);
@@ -20,6 +22,8 @@ const PaymentSuccess: React.FC = () => {
     }).format(amount);
   };
 
+  // ... (rest of the component is the same)
+  // vvv
   const getCurrentDateTime = () => {
     const now = new Date();
     return {
@@ -47,6 +51,7 @@ const PaymentSuccess: React.FC = () => {
         </div>
 
         <div id="receipt" className="bg-white shadow-lg" style={{ fontFamily: 'monospace' }}>
+          {/* ... Header and student info ... */}
           <div className="text-center border-b-2 border-dashed border-gray-300 p-6">
             <div className="text-2xl font-bold mb-2">JEKACODE</div>
             <div className="text-sm text-gray-600 mb-1">BOOTCAMP ENROLLMENT</div>
@@ -67,7 +72,7 @@ const PaymentSuccess: React.FC = () => {
             <div className="flex justify-between"><span>EMAIL:</span><span className="text-right max-w-[150px] break-words text-xs">{paymentData.email}</span></div>
             <div className="flex justify-between"><span>PHONE:</span><span>{paymentData.phone}</span></div>
           </div>
-
+          {/* ... Course details ... */}
           <div className="border-t border-dashed border-gray-300"></div>
 
           <div className="p-6 space-y-2 text-sm">
@@ -80,18 +85,18 @@ const PaymentSuccess: React.FC = () => {
 
           <div className="border-t border-dashed border-gray-300"></div>
 
+          {/* ✅ FIX: Use the values from the context for the receipt */}
           <div className="p-6 space-y-2 text-sm">
             <div className="font-bold mb-3">PAYMENT BREAKDOWN</div>
-            <div className="flex justify-between"><span>COURSE PRICE:</span><span>{formatCurrency(paymentData.totalAmount)}</span></div>
-            {paymentData.voucherCode && (<div className="flex justify-between"><span>VOUCHER ({paymentData.voucherCode}):</span><span>-{formatCurrency(paymentData.discountAmount)}</span></div>)}
+            <div className="flex justify-between"><span>COURSE PRICE:</span><span>{formatCurrency(totalAmount)}</span></div>
+            {paymentData.voucherCode && discountAmount > 0 && (<div className="flex justify-between"><span>VOUCHER ({paymentData.voucherCode}):</span><span>-{formatCurrency(discountAmount)}</span></div>)}
             <div className="border-t border-gray-300 my-2"></div>
-            <div className="flex justify-between font-bold"><span>TOTAL AMOUNT:</span><span>{formatCurrency(paymentData.finalAmount)}</span></div>
-            <div className="flex justify-between font-bold text-lg"><span>AMOUNT PAID:</span><span>{formatCurrency(paymentData.currentPayment)}</span></div>
-            {paymentData.paymentPlan !== 'full' && (<div className="flex justify-between text-red-600"><span>BALANCE DUE:</span><span>{formatCurrency(paymentData.finalAmount - paymentData.currentPayment)}</span></div>)}
+            <div className="flex justify-between font-bold"><span>TOTAL AMOUNT:</span><span>{formatCurrency(finalAmount)}</span></div>
+            <div className="flex justify-between font-bold text-lg"><span>AMOUNT PAID:</span><span>{formatCurrency(currentPayment)}</span></div>
+            {paymentData.paymentPlan !== 'full' && (<div className="flex justify-between text-red-600"><span>BALANCE DUE:</span><span>{formatCurrency(finalAmount - currentPayment)}</span></div>)}
           </div>
 
           <div className="border-t border-dashed border-gray-300"></div>
-
           <div className="p-6 text-center">
             <div className="inline-flex items-center px-4 py-2 bg-green-100 text-green-800 rounded-full text-sm font-bold mb-4">✓ PAYMENT SUCCESSFUL</div>
           </div>
@@ -109,28 +114,7 @@ const PaymentSuccess: React.FC = () => {
       </div>
 
       <style>
-        {`
-          @media print {
-            body * {
-              visibility: hidden;
-            }
-            #receipt, #receipt * {
-              visibility: visible;
-            }
-            #receipt {
-              position: absolute;
-              left: 0;
-              top: 0;
-              width: 100% !important;
-              max-width: none !important;
-              box-shadow: none !important;
-              border: none !important;
-            }
-            .no-print {
-              display: none;
-            }
-          }
-        `}
+        {`@media print{body *{visibility:hidden}#receipt,#receipt *{visibility:visible}#receipt{position:absolute;left:0;top:0;width:100%!important;max-width:none!important;box-shadow:none!important;border:none!important}.no-print{display:none}}`}
       </style>
     </div>
   );

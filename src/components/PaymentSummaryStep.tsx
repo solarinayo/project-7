@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePayment } from '../contexts/PaymentContext';
+import { courses } from '../data/courses'; 
 import { 
   ArrowLeftIcon, 
   CreditCardIcon,
@@ -18,7 +19,16 @@ interface PaymentSummaryStepProps {
 }
 
 const PaymentSummaryStep: React.FC<PaymentSummaryStepProps> = ({ setIsSubmitting }) => {
-  const { paymentData, setCurrentStep, courses, initializePayment, submitPayment } = usePayment();
+  const { 
+    paymentData, 
+    setCurrentStep, 
+    initializePayment, 
+    submitPayment,
+    totalAmount,
+    discountAmount,
+    finalAmount,
+    currentPayment 
+  } = usePayment();
   const navigate = useNavigate();
 
   const selectedCourse = courses.find(c => c.id === paymentData.courseId);
@@ -30,12 +40,19 @@ const PaymentSummaryStep: React.FC<PaymentSummaryStepProps> = ({ setIsSubmitting
       minimumFractionDigits: 0,
     }).format(amount);
   };
-
-  const handleSuccess = async () => {
-    console.log('Payment successful via Paystack!');
-    await submitPayment();
+  
+  // ✅ FIX: The complete success handler
+  const handleSuccess = async (response: any) => {
+    const result = await submitPayment(response);
+    
+    if (result.success) {
+      // Navigate to the success page on a successful enrollment
+      navigate('/payment-success');
+    } else {
+      alert('There was an issue saving your enrollment details. Please contact support.');
+    }
+    // This is crucial to hide the preloader regardless of the outcome
     setIsSubmitting(false);
-    navigate('/payment-success');
   };
 
   const handleClose = () => {
@@ -44,8 +61,8 @@ const PaymentSummaryStep: React.FC<PaymentSummaryStepProps> = ({ setIsSubmitting
   };
 
   const handlePayment = () => {
-    if (!paymentData.email) {
-        alert("Email is required to proceed with payment.");
+    if (!paymentData.email || !paymentData.fullName) {
+        alert("Full Name and Email are required to proceed.");
         return;
     }
     setIsSubmitting(true);
@@ -53,20 +70,20 @@ const PaymentSummaryStep: React.FC<PaymentSummaryStepProps> = ({ setIsSubmitting
   };
 
   const SummaryCard = ({ icon: Icon, title, value, highlight = false }: any) => (
-    <div className={`p-4 rounded-2xl border-2 transition-all duration-300 ${
+    <div className={`p-4 rounded-xl border transition-all duration-300 ${
       highlight 
-        ? 'border-blue-500 bg-blue-50 shadow-glow' 
-        : 'border-gray-200 bg-white hover:border-blue-300 hover:shadow-medium'
+        ? 'border-blue-300 bg-blue-50' 
+        : 'border-gray-200 bg-white hover:border-blue-200'
     }`}>
       <div className="flex items-center space-x-3">
-        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-          highlight ? 'gradient-primary' : 'bg-gray-100'
-        } shadow-medium`}>
-          <Icon className={`w-5 h-5 ${highlight ? 'text-white' : 'text-gray-600'}`} />
+        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+          highlight ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'
+        }`}>
+          <Icon className="w-5 h-5" />
         </div>
         <div>
-          <p className="text-sm text-gray-600 font-medium">{title}</p>
-          <p className={`font-bold ${highlight ? 'text-blue-700' : 'text-gray-800'}`}>{value}</p>
+          <p className="text-sm text-gray-500">{title}</p>
+          <p className="font-semibold text-gray-800">{value}</p>
         </div>
       </div>
     </div>
@@ -74,88 +91,62 @@ const PaymentSummaryStep: React.FC<PaymentSummaryStepProps> = ({ setIsSubmitting
 
   return (
     <div className="space-y-8">
-      <div className="text-center animate-fade-in-scale">
-        <div className="inline-flex items-center justify-center w-20 h-20 gradient-success rounded-3xl mb-6 shadow-glow-lg animate-float">
-          <CreditCardIcon className="w-10 h-10 text-white" />
-        </div>
-        <h2 className="text-3xl sm:text-4xl font-bold text-gray-800 mb-3 tracking-tight">Payment Summary</h2>
-        <p className="text-gray-600 text-lg sm:text-xl font-medium">Review your enrollment details</p>
-        <div className="w-32 h-1.5 gradient-success rounded-full mx-auto mt-6 animate-gradient"></div>
+      {/* Header */}
+      <div className="text-center">
+        <CreditCardIcon className="h-12 w-12 mx-auto text-blue-600 mb-4" />
+        <h2 className="text-3xl font-bold text-gray-800">Payment Summary</h2>
+        <p className="text-gray-500 mt-2">Please review your enrollment details carefully.</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="space-y-6">
-          <div className="glass-effect rounded-3xl p-6 border border-white/20 shadow-large">
-            <h3 className="text-2xl font-bold text-gray-800 mb-6 flex items-center">
-              <UserIcon className="w-6 h-6 mr-3 text-blue-500" />
-              Student Information
-            </h3>
-            <div className="space-y-4">
-              <SummaryCard icon={UserIcon} title="Full Name" value={paymentData.fullName || 'N/A'} />
-              <SummaryCard icon={UserIcon} title="Email" value={paymentData.email || 'N/A'} />
-              <SummaryCard icon={UserIcon} title="Phone" value={paymentData.phone ? `+234 ${paymentData.phone}` : 'N/A'} />
-              <SummaryCard icon={MapPinIcon} title="State" value={paymentData.state || 'N/A'} />
-            </div>
-          </div>
-        </div>
-
-        <div className="space-y-6">
-          <div className="glass-effect rounded-3xl p-6 border border-white/20 shadow-large">
-            <h3 className="text-2xl font-bold text-gray-800 mb-6 flex items-center">
-              <AcademicCapIcon className="w-6 h-6 mr-3 text-green-500" />
-              Course Details
-            </h3>
-            <div className="space-y-4">
-              <SummaryCard icon={AcademicCapIcon} title="Course" value={selectedCourse?.name || 'N/A'} highlight />
-              <SummaryCard icon={MapPinIcon} title="Format" value={paymentData.classFormat === 'virtual' ? 'Virtual Classes' : 'Physical Classes'} />
-              <SummaryCard icon={CalendarIcon} title="Cohort" value={paymentData.cohort || 'N/A'} />
-              <SummaryCard icon={CreditCardIcon} title="Payment Plan" value={paymentData.paymentPlan === 'full' ? 'Full Payment' : `${paymentData.paymentPlan.split('_')[1]} Installments`} />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="glass-effect rounded-3xl p-6 sm:p-8 border border-white/20 shadow-large animate-slide-in-up">
-        <h3 className="text-2xl font-bold text-gray-800 mb-6 flex items-center">
-          <CurrencyDollarIcon className="w-6 h-6 mr-3 text-purple-500" />
-          Payment Breakdown
-        </h3>
+      {/* Details Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="space-y-4">
-          <div className="flex justify-between items-center py-3 border-b border-gray-200">
-            <span className="text-gray-600 font-medium">Course Price</span>
-            <span className="text-xl font-bold text-gray-800">{formatCurrency(paymentData.totalAmount)}</span>
+            <h3 className="text-lg font-semibold text-gray-700 flex items-center"><UserIcon className="w-5 h-5 mr-2 text-blue-500" />Student Info</h3>
+            <SummaryCard icon={UserIcon} title="Full Name" value={paymentData.fullName || 'N/A'} />
+            <SummaryCard icon={UserIcon} title="Email" value={paymentData.email || 'N/A'} />
+        </div>
+        <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-gray-700 flex items-center"><AcademicCapIcon className="w-5 h-5 mr-2 text-green-500" />Course Info</h3>
+            <SummaryCard icon={AcademicCapIcon} title="Course" value={selectedCourse?.name || 'N/A'} highlight />
+            <SummaryCard icon={MapPinIcon} title="Format" value={paymentData.classFormat === 'virtual' ? 'Virtual' : 'Physical'} />
+            <SummaryCard icon={CalendarIcon} title="Cohort" value={paymentData.cohort || 'N/A'} />
+        </div>
+      </div>
+
+      {/* Payment Breakdown */}
+      <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
+        <h3 className="text-lg font-semibold text-gray-700 mb-4 flex items-center"><CurrencyDollarIcon className="w-5 h-5 mr-2 text-purple-500" />Payment Breakdown</h3>
+        <div className="space-y-3 text-base">
+          <div className="flex justify-between items-center">
+            <span className="text-gray-600">Course Price:</span>
+            <span className="font-medium text-gray-800">{formatCurrency(totalAmount)}</span>
           </div>
-          {paymentData.voucherCode && (
-            <div className="flex justify-between items-center py-3 border-b border-gray-200">
-              <div className="flex items-center space-x-2">
-                <TagIcon className="w-5 h-5 text-green-500" />
-                <span className="text-green-600 font-medium">Voucher ({paymentData.voucherCode})</span>
-              </div>
-              <span className="text-xl font-bold text-green-600">-{formatCurrency(paymentData.discountAmount)}</span>
+          {discountAmount > 0 && (
+            <div className="flex justify-between items-center text-green-600">
+              <span className="flex items-center text-gray-600"><TagIcon className="w-4 h-4 mr-2"/>Voucher ({paymentData.voucherCode})</span>
+              <span className="font-medium">-{formatCurrency(discountAmount)}</span>
             </div>
           )}
-          <div className="flex justify-between items-center py-4 bg-blue-50 rounded-2xl px-4 border-2 border-blue-200">
-            <span className="text-blue-800 font-bold text-lg">Final Amount</span>
-            <span className="text-2xl font-bold text-blue-700">{formatCurrency(paymentData.finalAmount)}</span>
+          <hr className="my-2"/>
+          <div className="flex justify-between items-center text-xl font-bold text-gray-800">
+            <span>Final Amount:</span>
+            <span>{formatCurrency(finalAmount)}</span>
           </div>
-          <div className="flex justify-between items-center py-4 bg-green-50 rounded-2xl px-4 border-2 border-green-200">
-            <span className="text-green-800 font-bold text-lg">{paymentData.paymentPlan === 'full' ? 'Amount to Pay Now' : 'First Payment'}</span>
-            <span className="text-3xl font-bold text-green-700">{formatCurrency(paymentData.currentPayment)}</span>
+          <div className="flex justify-between items-center py-3 px-4 bg-blue-100 rounded-lg text-2xl font-bold text-blue-700">
+            <span>Amount to Pay Now:</span>
+            <span>{formatCurrency(currentPayment)}</span>
           </div>
         </div>
       </div>
-
-      <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-8">
-        <button type="button" onClick={() => setCurrentStep(2)} className="flex items-center px-8 py-4 text-gray-600 hover:text-gray-800 hover:bg-white/70 rounded-2xl transition-all duration-300 font-semibold shadow-medium hover:shadow-large transform hover:scale-105 w-full sm:w-auto">
-          <ArrowLeftIcon className="h-6 w-6 mr-3" />
-          Back
+      
+      {/* Navigation */}
+      <div className="flex justify-between items-center pt-6">
+        <button type="button" onClick={() => setCurrentStep(2)} className="px-8 py-3 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 transition-colors">
+          <ArrowLeftIcon className="h-5 w-5 inline-block mr-2" />Back
         </button>
-        <button onClick={handlePayment} className="group relative overflow-hidden px-8 py-4 font-bold rounded-2xl transition-all duration-300 transform shadow-large text-lg w-full sm:w-auto btn-success hover:shadow-glow-lg animate-glow hover:scale-105">
-          <div className="flex items-center justify-center">
-            <CheckCircleIcon className="h-6 w-6 mr-3 group-hover:animate-bounce-gentle" />
-            <span>Complete Payment - {formatCurrency(paymentData.currentPayment)}</span>
-          </div>
-          <div className="absolute inset-0 bg-white/20 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+        <button onClick={handlePayment} className="px-8 py-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition-colors transform hover:scale-105 shadow-lg">
+          <CheckCircleIcon className="h-5 w-5 inline-block mr-2" />
+          Complete Payment
         </button>
       </div>
     </div>

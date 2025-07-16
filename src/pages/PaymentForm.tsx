@@ -13,6 +13,7 @@ const PaymentForm: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleBack = () => {
+    if (isSubmitting) return; // Prevent navigation while submitting
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
     } else {
@@ -34,7 +35,8 @@ const PaymentForm: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-blue-50">
+    // We add an ID here to help the context find the setIsSubmitting function if needed
+    <div id="payment-form-container" className="min-h-screen bg-gradient-to-br from-primary-50 to-blue-50">
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
           {/* Header */}
@@ -63,12 +65,12 @@ const PaymentForm: React.FC = () => {
         </div>
       </div>
       
-      {/* Loading Overlay */}
+      {/* ✅ FIX: Loading Overlay updated to match your screenshot */}
       {isSubmitting && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-8 text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
-            <p className="text-gray-700">Processing your payment...</p>
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 backdrop-blur-sm">
+          <div className="bg-white rounded-lg p-8 text-center flex flex-col items-center">
+            <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-4"></div>
+            <p className="text-gray-700 text-lg font-medium">Processing your payment...</p>
           </div>
         </div>
       )}
