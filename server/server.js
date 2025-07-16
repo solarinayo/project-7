@@ -1,4 +1,4 @@
-// ✅ FIX: Load environment variables at the absolute start of the application
+// Load environment variables at the absolute start of the application
 require("./config");
 
 const express = require("express");
@@ -37,9 +37,14 @@ const limiter = rateLimit({
 app.use(limiter);
 
 // --- MongoDB Connection ---
-// The MONGODB_URI will now be correctly loaded
+// ✅ FIX: Removed the conflicting 'tlsInsecure' option.
+const mongoOptions = {
+  tls: true,
+  tlsAllowInvalidCertificates: false, // This is a safer option to keep.
+};
+
 mongoose
-  .connect(process.env.MONGODB_URI)
+  .connect(process.env.MONGODB_URI, mongoOptions)
   .then(() => {
     console.log("✅ Connected to MongoDB");
     // Initialize Google Sheets after a successful DB connection
@@ -59,7 +64,7 @@ app.get("/api/health", (req, res) => {
 });
 
 // --- Start Server ---
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📱 Environment: ${process.env.NODE_ENV || "development"}`);

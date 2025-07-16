@@ -1,26 +1,41 @@
-const { GoogleSpreadsheet } = require('google-spreadsheet');
+const { GoogleSpreadsheet } = require("google-spreadsheet");
+// ✅ FIX: Import the JWT auth helper from google-auth-library
+const { JWT } = require("google-auth-library");
 
+// This will hold the authenticated doc object
 let doc;
 
 const initializeGoogleSheets = async () => {
   try {
-    if (!process.env.GOOGLE_SHEETS_SPREADSHEET_ID) {
-      console.warn('Google Sheets not configured');
+    if (
+      !process.env.GOOGLE_SHEETS_SPREADSHEET_ID ||
+      !process.env.GOOGLE_SHEETS_CLIENT_EMAIL ||
+      !process.env.GOOGLE_SHEETS_PRIVATE_KEY
+    ) {
+      console.warn(
+        "⚠️ Google Sheets environment variables are not fully configured. Skipping initialization."
+      );
       return null;
     }
 
-    doc = new GoogleSpreadsheet(process.env.GOOGLE_SHEETS_SPREADSHEET_ID);
-
-    await doc.useServiceAccountAuth({
-      client_email: process.env.GOOGLE_SHEETS_CLIENT_EMAIL,
-      private_key: process.env.GOOGLE_SHEETS_PRIVATE_KEY.replace(/\\n/g, '\n'),
+    // ✅ FIX: Authenticate using the JWT helper
+    const serviceAccountAuth = new JWT({
+      email: process.env.GOOGLE_SHEETS_CLIENT_EMAIL,
+      key: process.env.GOOGLE_SHEETS_PRIVATE_KEY.replace(/\\n/g, "\n"), // Ensure newlines are correctly formatted
+      scopes: ["https://www.googleapis.com/auth/spreadsheets"],
     });
 
-    await doc.loadInfo();
-    console.log('✅ Google Sheets initialized');
+    // ✅ FIX: Pass the spreadsheet ID and the auth client to the constructor
+    doc = new GoogleSpreadsheet(
+      process.env.GOOGLE_SHEETS_SPREADSHEET_ID,
+      serviceAccountAuth
+    );
+
+    await doc.loadInfo(); // Loads document properties and worksheets
+    console.log(`✅ Google Sheets initialized: "${doc.title}"`);
     return doc;
   } catch (error) {
-    console.error('❌ Google Sheets initialization error:', error);
+    console.error("❌ Google Sheets initialization error:", error.message);
     return null;
   }
 };
@@ -28,52 +43,45 @@ const initializeGoogleSheets = async () => {
 const addToGoogleSheets = async (studentData) => {
   try {
     if (!doc) {
-      await initializeGoogleSheets();
-    }
-
-    if (!doc) {
-      console.warn('Google Sheets not available, skipping...');
+      // If initialization failed or was skipped, don't proceed
+      console.warn(
+        'Google Sheets is not available. Skipping "addToGoogleSheets".'
+      );
       return;
     }
 
-    // Get or create the sheet
-    let sheet = doc.sheetsByIndex[0];
+    const sheet = doc.sheetsByIndex[0]; // Or use doc.sheetsByTitle['YourSheetTitle']
     if (!sheet) {
-      sheet = await doc.addSheet({ 
-        title: 'Students',
-        headerValues: [
-          'Timestamp', 'Full Name', 'Email', 'Phone', 'Course', 'Format', 
-          'Cohort', 'Payment Plan', 'Total Amount', 'Final Amount', 
-          'Current Payment', 'Voucher Code', 'Payment Status', 'Transaction ID'
-        ]
-      });
+      console.error("No sheet found in the document.");
+      return;
     }
 
-    // Add the student data
+    // Add the student data as a new row
     await sheet.addRow({
-      'Timestamp': new Date().toISOString(),
-      'Full Name': studentData.fullName,
-      'Email': studentData.email,
-      'Phone': studentData.phone,
-      'Course': studentData.courseName,
-      'Format': studentData.classFormat,
-      'Cohort': studentData.cohort,
-      'Payment Plan': studentData.paymentPlan,
-      'Total Amount': studentData.totalAmount,
-      'Final Amount': studentData.finalAmount,
-      'Current Payment': studentData.currentPayment,
-      'Voucher Code': studentData.voucherCode || '',
-      'Payment Status': studentData.paymentStatus,
-      'Transaction ID': studentData.transactionId
+      Timestamp: new Date().toISOString(),
+      "Applicant ID": studentData.applicantId,
+      "Full Name": studentData.fullName,
+      Email: studentData.email,
+      Phone: studentData.phone,
+      Course: studentData.courseName,
+      Format: studentData.classFormat,
+      Cohort: studentData.cohort,
+      "Payment Plan": studentData.paymentPlan,
+      "Amount Paid": studentData.currentPayment,
+      "Final Amount": studentData.finalAmount,
+      "Voucher Code": studentData.voucherCode || "N/A",
+      "Paystack Ref": studentData.paystackReference,
     });
 
-    console.log('✅ Student data added to Google Sheets');
+    console.log(
+      `✅ Student data for "${studentData.fullName}" added to Google Sheets.`
+    );
   } catch (error) {
-    console.error('❌ Google Sheets error:', error);
+    console.error("❌ Failed to add row to Google Sheets:", error.message);
   }
 };
 
 module.exports = {
   initializeGoogleSheets,
-  addToGoogleSheets
+  addToGoogleSheets,
 };
