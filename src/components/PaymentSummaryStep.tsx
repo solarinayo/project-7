@@ -29,11 +29,11 @@ const PaymentSummaryStep: React.FC<PaymentSummaryStepProps> = ({ setIsSubmitting
   
   // ✅ FIX: This function is now guaranteed to be called on success.
   const handleSuccess = async (response: any) => {
-    console.log('Paystack transaction successful. Ref:', response.reference);
+    console.log('✅ Paystack transaction successful. Ref:', response.reference);
     const result = await submitPayment(response);
     
     if (result.success) {
-      console.log('Backend enrollment successful. Redirecting to receipt page...');
+      console.log('✅ Backend enrollment successful. Redirecting to receipt page...');
       navigate('/payment-success');
     } else {
       alert('Your payment was accepted, but there was an error saving your enrollment. Please contact support and provide this reference: ' + response.reference);
@@ -43,7 +43,7 @@ const PaymentSummaryStep: React.FC<PaymentSummaryStepProps> = ({ setIsSubmitting
   };
 
   const handleClose = () => {
-    console.log('Payment cancelled by user.');
+    console.log('❌ Payment cancelled by user.');
     setIsSubmitting(false);
   };
 

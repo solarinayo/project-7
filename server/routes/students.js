@@ -24,8 +24,10 @@ router.post(
       .withMessage("Paystack reference is missing."),
   ],
   async (req, res) => {
+    console.log("✅ Received enrollment request on backend:", req.body);
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      console.error("❌ Validation errors:", errors.array());
       return res.status(400).json({ errors: errors.array() });
     }
 
@@ -35,12 +37,13 @@ router.post(
         email: studentData.email,
       });
       if (existingStudent) {
-        return res
-          .status(409)
-          .json({
-            message:
-              "This email address has already been used for an enrollment.",
-          });
+        console.warn(
+          `⚠️ Attempt to enroll with existing email: ${studentData.email}`
+        );
+        return res.status(409).json({
+          message:
+            "This email address has already been used for an enrollment.",
+        });
       }
 
       const prefix = COURSE_PREFIXES[studentData.courseId] || "GEN";
@@ -58,8 +61,9 @@ router.post(
       });
 
       const savedStudent = await student.save();
+      console.log(`✅ Student ${applicantId} saved to MongoDB.`);
 
-      // Trigger background tasks without waiting for them to complete
+      // --- Trigger background tasks without waiting ---
       sendEmail({
         to: savedStudent.email,
         template: "payment-confirmation",
@@ -78,10 +82,10 @@ router.post(
         student: savedStudent.toObject(),
       });
     } catch (error) {
-      console.error("Enrollment Error:", error);
-      res
-        .status(500)
-        .json({ message: "An internal error occurred during enrollment." });
+      console.error("❌ Enrollment Error on Server:", error);
+      res.status(500).json({
+        message: "An internal server error occurred during enrollment.",
+      });
     }
   }
 );

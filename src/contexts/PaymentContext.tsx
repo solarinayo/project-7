@@ -81,18 +81,18 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
         finalAmount, currentPayment, paystackReference: paystackResponse.reference,
     };
     try {
-      console.log('Submitting enrollment data to server:', fullPaymentDetails);
+      console.log('✅ Submitting enrollment data to server:', fullPaymentDetails);
       const response = await fetch(`${import.meta.env.VITE_API_URL}/students/enroll`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(fullPaymentDetails),
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.message || 'Enrollment failed.');
-      console.log('Enrollment successful:', result);
+      console.log('✅ Enrollment successful:', result);
       updatePaymentData({ applicantId: result.student.applicantId });
       return { success: true, data: result.student };
     } catch (error) {
-      console.error("Payment submission error:", error);
+      console.error("❌ Payment submission error:", error);
       return { success: false };
     }
   };
@@ -106,6 +106,7 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     metadata: {
         name: paymentData.fullName,
         phone: paymentData.phone,
+        course: courses.find(c => c.id === paymentData.courseId)?.name || 'N/A'
     }
   };
 
