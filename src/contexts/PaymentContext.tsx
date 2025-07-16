@@ -1,11 +1,10 @@
 import React, { createContext, useContext, useState, useMemo } from 'react';
 import { usePaystackPayment } from 'react-paystack';
-// ✅ FIX: Import courses and Course type from the new data file
 import { courses, Course } from '../data/courses';
 
-// --- INTERFACES (Added applicantId) ---
+// --- INTERFACES & INITIAL DATA (No changes needed) ---
 interface PaymentData {
-  applicantId?: string; // This will come from the server
+  applicantId?: string;
   fullName: string;
   email: string;
   phone: string;
@@ -38,8 +37,6 @@ interface PaymentContextType {
 
 const PaymentContext = createContext<PaymentContextType | undefined>(undefined);
 
-// ❌ The 'courses' array has been moved to src/data/courses.ts
-
 const initialPaymentData: PaymentData = {
   fullName: '', email: '', phone: '', highestAchievement: '', ageRange: '',
   country: 'Nigeria', state: 'Lagos', classFormat: 'virtual', courseId: 'frontend',
@@ -49,16 +46,10 @@ const initialPaymentData: PaymentData = {
 export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [paymentData, setPaymentData] = useState<PaymentData>(initialPaymentData);
-  const [transactionRef, setTransactionRef] = useState('');
-
-  useMemo(() => {
-    setTransactionRef((new Date()).getTime().toString());
-  }, [paymentData.email, paymentData.currentPayment]);
   
   const vouchers = {
     'WELCOME20': { discount: 0.2, used: false },
     'STUDENT15': { discount: 0.15, used: false },
-    'EARLY10': { discount: 0.1, used: false },
   };
 
   const updatePaymentData = (data: Partial<PaymentData>) => {
@@ -84,20 +75,20 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const validateVoucher = (code: string): boolean => !!(vouchers[code] && !vouchers[code].used);
 
   const submitPayment = async (paystackResponse: any): Promise<{ success: boolean; data?: any }> => {
-    const courseName = courses.find(c => c.id === paymentData.courseId)?.name || 'Unknown';
+    const courseName = courses.find(c => c.id === paymentData.courseId)?.name || 'Unknown Course';
     const fullPaymentDetails = {
         ...paymentData, courseName, totalAmount, discountAmount,
         finalAmount, currentPayment, paystackReference: paystackResponse.reference,
     };
-    
     try {
+      console.log('Submitting enrollment data to server:', fullPaymentDetails);
       const response = await fetch(`${import.meta.env.VITE_API_URL}/students/enroll`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(fullPaymentDetails),
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.message || 'Enrollment failed.');
+      console.log('Enrollment successful:', result);
       updatePaymentData({ applicantId: result.student.applicantId });
       return { success: true, data: result.student };
     } catch (error) {
@@ -106,20 +97,30 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   };
   
-  const paystackConfig = useMemo(() => ({
-    reference: transactionRef,
+  // ✅ FIX: The Paystack config is now stable. It no longer includes a 'reference' key,
+  // which was being regenerated and causing the hook to become unstable.
+  const paystackConfig = {
     email: paymentData.email,
     amount: Math.round(currentPayment * 100),
-    publicKey: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || '', 
-  }), [transactionRef, paymentData.email, currentPayment]);
+    publicKey: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || '',
+    metadata: {
+        name: paymentData.fullName,
+        phone: paymentData.phone,
+    }
+  };
 
   const paystackHook = usePaystackPayment(paystackConfig);
 
-  const initializePayment = (onSuccess: (res: any) => void, onClose: () => void) => {
+  const initializePayment = (onSuccess: (response: any) => void, onClose: () => void) => {
     if (!paystackConfig.publicKey) {
-      alert("Paystack key is missing. Payment cannot proceed.");
-      onClose();
-      return;
+        alert("Payment gateway is not configured. Please contact support.");
+        onClose();
+        return;
+    }
+    if (!paystackConfig.email) {
+        alert("Email is required to make a payment. Please go back to Step 1.");
+        onClose();
+        return;
     }
     paystackHook(onSuccess, onClose);
   };
@@ -137,6 +138,6 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
 export const usePayment = () => {
   const context = useContext(PaymentContext);
-  if (!context) throw new Error('usePayment must be used within a PaymentProvider');
+  if (!context) throw new Error('usePayment must be used within an AdminProvider');
   return context;
 };
